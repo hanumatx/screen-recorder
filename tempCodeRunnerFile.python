@@ -1,0 +1,77 @@
+import os
+import tkinter as tk
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
+
+# Directory where model and tokenizer are stored
+model_dir = "./gpt2_local"
+
+# Check if model and tokenizer are already downloaded, else download them
+if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+    print("Downloading model...")
+    model = GPT2LMHeadModel.from_pretrained('gpt2')
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+    # Save locally
+    model.save_pretrained(model_dir)
+    tokenizer.save_pretrained(model_dir)
+    print("Model downloaded and saved locally.")
+else:
+    print("Loading model from local storage...")
+    model = GPT2LMHeadModel.from_pretrained(model_dir)
+    tokenizer = GPT2Tokenizer.from_pretrained(model_dir)
+    print("Model loaded from local storage.")
+
+# Define text generation function with advanced parameters
+def generate_text():
+    prompt = user_input.get()
+    max_len = int(length_input.get()) if length_input.get().isdigit() else 200
+    temp = float(temp_input.get()) if temp_input.get() else 1.0
+    top_p = float(top_p_input.get()) if top_p_input.get() else 0.9
+
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = model.generate(
+        inputs['input_ids'], 
+        max_length=max_len,   # Generate long paragraphs
+        temperature=temp,     # Adjust randomness (lower values = more focused text)
+        top_p=top_p,          # Nucleus sampling
+        do_sample=True        # Enable sampling for diversity
+    )
+    generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    output_label.config(text=generated_text)
+
+# Create GUI
+root = tk.Tk()
+root.title("Advanced AI Text Generator (Offline)")
+
+# Input prompt field
+tk.Label(root, text="Enter a prompt:").pack()
+user_input = tk.Entry(root, width=50)
+user_input.pack()
+
+# Text length option
+tk.Label(root, text="Max Length (Default: 200):").pack()
+length_input = tk.Entry(root)
+length_input.pack()
+
+# Temperature option (creativity control)
+tk.Label(root, text="Temperature (Default: 1.0):").pack()
+temp_input = tk.Entry(root)
+temp_input.pack()
+
+# Top-p sampling option (creativity control)
+tk.Label(root, text="Top-p (Nucleus Sampling) (Default: 0.9):").pack()
+top_p_input = tk.Entry(root)
+top_p_input.pack()
+
+# Generate button
+generate_button = tk.Button(root, text="Generate", command=generate_text)
+generate_button.pack()
+
+# Label to display generated text
+output_label = tk.Label(root, text="", wraplength=500, justify="left")
+output_label.pack()
+
+# Start the GUI loop
+root.mainloop()
